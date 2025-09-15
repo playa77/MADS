@@ -1,0 +1,35 @@
+{
+  "openrouter": {
+    "base_url": "https://openrouter.ai/api/v1",
+    "api_key_envvar": "OPENROUTER_API_KEY"
+  },
+  "model": {
+    "name": "deepseek/deepseek-chat-v3.1:free",
+    "temperature": 0.6,
+    "max_tokens": 512
+  },
+  "conversation": {
+    "history_window_utts": 12,
+    "rounds": 50,
+    "stop_on_repeat": 2,
+    "stop_on_user_input": true,
+    "seed_topic": "As AI continues to advance, will the resulting displacement of jobs necessitate the implementation of a Universal Basic Income, and if so, by what year might this become a critical societal need? Should UBI be adopted, what specific financial models and implementation strategies would most effectively and equitably support all of humanity?",
+    "query_delay_seconds": 5,
+    "repeat_similarity_threshold": 0.88
+  },
+  "agents": [
+    {"id": "optimist", "name": "Optimist", "system_prompt_file": "roles/optimist.txt", "temperature": 0.7},
+    {"id": "pessimist", "name": "Pessimist", "system_prompt_file": "roles/pessimist.txt", "temperature": 0.4},
+    {"id": "pragmatist", "name": "Pragmatist", "system_prompt_file": "roles/pragmatist.txt", "temperature": 0.3},
+    {"id": "futurist", "name": "Futurist", "system_prompt_file": "roles/futurist.txt", "temperature": 0.8},
+    {"id": "historian", "name": "Historian", "system_prompt_file": "roles/historian.txt", "temperature": 0.5},
+    {"id": "contrarian", "name": "Contrarian", "system_prompt_file": "roles/contrarian.txt", "temperature": 0.9},
+    {"id": "strategist", "name": "Strategist", "system_prompt_file": "roles/strategist.txt", "temperature": 0.4},
+    {"id": "machiavelli", "name": "Machiavelli", "system_prompt_file": "roles/machiavelli.txt", "temperature": 0.6},
+    {"id": "stoic", "name": "Stoic", "system_prompt_file": "roles/stoic.txt", "temperature": 0.5}
+  ],
+  "logging": {
+    "file": "data/debates.json",
+    "append": true
+  }
+}

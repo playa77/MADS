@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  debate:
+    build: .
+    container_name: multiagent_debate
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./roles:/app/roles
+      - ./config.json:/app/config.json:ro
+    # If you want an interactive TTY during development, run with `docker compose run --service-ports debate`.
+    tty: true
