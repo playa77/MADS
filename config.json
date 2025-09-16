@@ -4,7 +4,7 @@
     "api_key_envvar": "OPENROUTER_API_KEY"
   },
   "model": {
-    "name": "deepseek/deepseek-chat-v3.1:free",
+    "name": "deepseek/deepseek-r1:free", # the two favored models are  deepseek/deepseek-r1:free and qwen/qwen3-235b-a22b:free
     "temperature": 0.6,
     "max_tokens": 512
   },
