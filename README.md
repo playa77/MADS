@@ -1,3 +1,5 @@
+# v0.1 THIS IS THE FIRST WORKING VERSION!
+
 # Multi-Agent Debate System
 
 A simple Python framework for orchestrating AI-powered debates between multiple specialized agents. This system enables complex discussions on nuanced topics by having different AI personalities engage in structured conversations, each bringing unique perspectives and reasoning styles.
