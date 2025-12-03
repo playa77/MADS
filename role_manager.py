@@ -1,4 +1,4 @@
-# v3.0.0 - Work Package 1: Role Manager
+# v3.0.1 - Work Package 1: Role Manager (Updated Default Model)
 import os
 import glob
 from typing import List, Optional
@@ -13,16 +13,13 @@ class RoleManager:
         self._ensure_roles_dir()
 
     def _ensure_roles_dir(self):
-        """Ensure the roles directory exists."""
         if not os.path.exists(self.roles_dir):
             try:
                 os.makedirs(self.roles_dir)
-                print(f"[RoleManager] Created missing directory: {self.roles_dir}")
             except OSError as e:
                 print(f"[RoleManager] Error creating directory {self.roles_dir}: {e}")
 
     def list_available_roles(self) -> List[str]:
-        """Return a list of available role names (filenames without extension)."""
         try:
             pattern = os.path.join(self.roles_dir, "*.txt")
             files = glob.glob(pattern)
@@ -31,11 +28,8 @@ class RoleManager:
             print(f"[RoleManager] Error listing roles: {e}")
             return []
 
-    def load_role(self, role_id: str, default_model: str = "deepseek/deepseek-chat") -> Optional[AgentConfig]:
-        """
-        Load a specific role by ID (filename).
-        Returns an AgentConfig object or None if failed.
-        """
+    # UPDATED DEFAULT ARGUMENT
+    def load_role(self, role_id: str, default_model: str = "google/gemini-2.5-flash-lite") -> Optional[AgentConfig]:
         filepath = os.path.join(self.roles_dir, f"{role_id}.txt")
         
         if not os.path.exists(filepath):
@@ -46,14 +40,9 @@ class RoleManager:
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.read().strip()
             
-            # Simple parsing strategy: 
-            # If the file has a "Name: X" header, use it. Otherwise capitalize the ID.
-            # The rest is the system prompt.
-            
             name = role_id.capitalize()
             system_prompt = content
             
-            # Basic header parsing (optional, can be expanded)
             lines = content.split('\n')
             if lines and lines[0].lower().startswith("name:"):
                 name = lines[0].split(':', 1)[1].strip()
@@ -64,7 +53,7 @@ class RoleManager:
                 name=name,
                 system_prompt=system_prompt,
                 model_name=default_model,
-                temperature=0.7 # Default, can be overridden in UI later
+                temperature=0.7
             )
         except Exception as e:
             print(f"[RoleManager] Error loading role {role_id}: {e}")
