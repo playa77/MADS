@@ -1,12 +1,13 @@
-# v3.0.0 - Work Package 3: Controller
+# v3.0.0 - Work Package 4: Controller (Updated with Director & Delays)
 import os
-from PyQt6.QtCore import QObject, QThreadPool
+from PyQt6.QtCore import QObject, QThreadPool, QTimer
 from PyQt6.QtWidgets import QMessageBox
 
 from engine import DebateEngine
 from models import DebateState, Message
 from main_window import MainWindow
 from workers import OpenRouterWorker
+from prompt_engine import apply_influence_shader
 
 class DebateController(QObject):
     """
@@ -17,15 +18,14 @@ class DebateController(QObject):
         self.engine = engine
         self.ui = main_window
         self.thread_pool = QThreadPool.globalInstance()
+        self.is_waiting_delay = False # Lock to ensure delay respect
         
         # Connect UI signals
         self.ui.pause_requested.connect(self.on_pause)
         self.ui.resume_requested.connect(self.on_resume)
+        self.ui.injection_requested.connect(self.on_injection)
 
     def start_debate(self):
-        """
-        Called when the debate is handed over from Lobby to Arena.
-        """
         self.ui.set_topic(self.engine.state.topic)
         self.ui.append_system_message(f"Debate initialized with {len(self.engine.state.agents)} agents.")
         self.engine.start()
@@ -38,30 +38,67 @@ class DebateController(QObject):
         self.engine.resume()
         self.trigger_next_turn()
 
+    def on_injection(self, content: str, weight: float):
+        """
+        Handle Director intervention.
+        1. Pause engine (if running).
+        2. Inject message into history.
+        3. Resume engine.
+        4. Trigger next turn immediately (agents react to injection).
+        """
+        print(f"[Controller] Injection received: {content} (Weight: {weight})")
+        
+        # 1. Inject into Engine
+        self.engine.inject_message(content, weight)
+        
+        # 2. Update UI
+        self.ui.append_message("Director", content, is_injection=True)
+        
+        # 3. Force Resume if paused, or just continue
+        if self.engine.state.status == "PAUSED":
+            self.ui.btn_pause.setChecked(False)
+            self.ui.btn_pause.setText("Pause")
+            self.ui.lbl_status.setText("Status: RUNNING")
+            self.engine.resume()
+        
+        # 4. Trigger next turn (with small safety delay to clear UI events)
+        # We do not wait the full 2s here because this is a user action
+        QTimer.singleShot(500, self.trigger_next_turn)
+
     def trigger_next_turn(self):
         """
         Determines if we should proceed to the next turn and initiates it.
         """
+        # Checks
         if self.engine.state.status != "RUNNING":
             return
+        if self.is_waiting_delay:
+            return # Still in the mandatory silence period
 
         agent = self.engine.get_current_agent()
         if not agent:
             return
 
         # Prepare Context
-        # We construct the messages list for the LLM
-        # System Prompt + History
         messages = [{"role": "system", "content": agent.system_prompt}]
         
-        # Add debate history (pruned or full - for now full, but we should limit context window in real prod)
-        # We convert our internal Message model to OpenAI format
+        # Get history
         transcript = self.engine.get_context_for_current_turn(history_limit=15)
         
-        # We wrap the transcript in a user message to prompt the agent
+        # Check for recent injections to highlight in prompt
+        last_msg = self.engine.state.history[-1] if self.engine.state.history else None
+        injection_instruction = ""
+        if last_msg and last_msg.is_injection:
+            # Apply the Influence Shader logic to the PROMPT sent to the agent
+            # Note: The history already contains the raw message. 
+            # We add a specific instruction here to ensure they obey the weight.
+            injection_instruction = apply_influence_shader(last_msg.content, last_msg.influence_weight)
+            print(f"[Controller] Applying Shader: {injection_instruction}")
+
         prompt_content = (
             f"The debate topic is: {self.engine.state.topic}\n\n"
             f"Recent transcript:\n{transcript}\n\n"
+            f"{injection_instruction}\n\n"
             f"It is now your turn. Respond as {agent.name}. "
             f"Keep it concise (under 200 words). React to the previous speaker."
         )
@@ -74,7 +111,7 @@ class DebateController(QObject):
         # Launch Worker
         api_key = os.getenv("OPENROUTER_API_KEY")
         if not api_key:
-            self.ui.append_system_message("ERROR: OPENROUTER_API_KEY not found in environment.")
+            self.ui.append_system_message("ERROR: OPENROUTER_API_KEY not found.")
             self.ui.set_thinking(False)
             return
 
@@ -85,10 +122,8 @@ class DebateController(QObject):
             temperature=agent.temperature
         )
         
-        # Connect signals
         worker.signals.result.connect(lambda content: self.handle_turn_complete(agent, content))
         worker.signals.error.connect(self.handle_error)
-        # We could hook up token_received to a temporary buffer in UI if we wanted real-time streaming text
         
         self.thread_pool.start(worker)
 
@@ -119,16 +154,22 @@ class DebateController(QObject):
             self.ui.append_system_message("Debate Completed (Max rounds reached).")
             return
 
-        # 4. Schedule next turn (small delay for UX)
-        # We use a QTimer in a real app, but here we just call directly or via simple delay
-        # For safety in PyQt, we should use QTimer.singleShot
-        from PyQt6.QtCore import QTimer
-        QTimer.singleShot(1500, self.trigger_next_turn)
+        # 4. Schedule next turn with MANDATORY DELAY
+        # We set a lock so no other turns can trigger
+        self.is_waiting_delay = True
+        
+        delay_ms = 2500 # 2.5 seconds (meeting the >2s requirement)
+        print(f"[Controller] Turn complete. Waiting {delay_ms}ms before next turn...")
+        
+        def release_lock_and_trigger():
+            self.is_waiting_delay = False
+            self.trigger_next_turn()
+
+        QTimer.singleShot(delay_ms, release_lock_and_trigger)
 
     def handle_error(self, error_msg):
         self.ui.set_thinking(False)
         self.ui.append_system_message(f"API Error: {error_msg}")
-        # Pause on error so user can see it
         self.engine.pause()
         self.ui.btn_pause.setChecked(True)
         self.ui.btn_pause.setText("Resume")

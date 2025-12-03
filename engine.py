@@ -13,7 +13,7 @@ class DebateEngine:
         self.state = DebateState()
         print("[DebateEngine] Initialized in IDLE state.")
 
-    def initialize_debate(self, topic: str, agents: List[AgentConfig], max_rounds: int = 50):
+    def initialize_debate(self, topic: str, agents: List[AgentConfig], max_rounds: int = 10):
         """
         Sets up a new debate session.
         """

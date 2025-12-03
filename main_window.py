@@ -1,4 +1,4 @@
-# v3.0.0 - Work Package 3: Main Arena Window
+# v3.0.0 - Work Package 4: Main Arena Window (Updated with Director)
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTextBrowser, 
     QLabel, QPushButton, QProgressBar, QFrame
@@ -6,13 +6,17 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 
+# Import the new component
+from director import DirectorPanel
+
 class MainWindow(QWidget):
     """
     The runtime arena. Displays the chat and controls.
     """
-    # Signals for the Controller to hook into
     pause_requested = pyqtSignal()
     resume_requested = pyqtSignal()
+    # Re-emit director signal
+    injection_requested = pyqtSignal(str, float)
 
     def __init__(self):
         super().__init__()
@@ -20,7 +24,7 @@ class MainWindow(QWidget):
 
     def init_ui(self):
         self.setWindowTitle("Multi-Agent Debate Platform v3.0 - Arena")
-        self.resize(1200, 800)
+        self.resize(1200, 900) # Slightly taller for director panel
         
         layout = QVBoxLayout()
         
@@ -69,30 +73,47 @@ class MainWindow(QWidget):
         status_layout.addWidget(self.btn_pause)
         
         layout.addLayout(status_layout)
+
+        # 4. Director Panel (New)
+        self.director_panel = DirectorPanel()
+        self.director_panel.injection_requested.connect(self.injection_requested)
+        layout.addWidget(self.director_panel)
+
         self.setLayout(layout)
 
     def set_topic(self, topic: str):
         self.lbl_topic.setText(f"Topic: {topic}")
 
-    def append_message(self, sender: str, content: str, is_user: bool = False):
+    def append_message(self, sender: str, content: str, is_user: bool = False, is_injection: bool = False):
         """
         Formats and appends a message to the chat view.
         """
-        color = "#2980b9" if is_user else "#2c3e50"
-        bg_color = "#d4e6f1" if is_user else "#ffffff"
-        align = "right" if is_user else "left"
+        if is_injection:
+            color = "#c0392b" # Red for director
+            bg_color = "#fadbd8"
+            align = "center"
+            sender_display = f"DIRECTOR (Intervention)"
+        elif is_user:
+            color = "#2980b9"
+            bg_color = "#d4e6f1"
+            align = "right"
+            sender_display = sender
+        else:
+            color = "#2c3e50"
+            bg_color = "#ffffff"
+            align = "left"
+            sender_display = sender
         
         html = f"""
         <div style="margin-bottom: 15px; text-align: {align};">
             <div style="display: inline-block; background-color: {bg_color}; 
                         border: 1px solid #bdc3c7; border-radius: 8px; padding: 10px; max-width: 80%;">
-                <b style="color: {color};">{sender}</b><br/>
+                <b style="color: {color};">{sender_display}</b><br/>
                 <span style="color: #333;">{content.replace(chr(10), '<br>')}</span>
             </div>
         </div>
         """
         self.chat_view.append(html)
-        # Auto-scroll
         sb = self.chat_view.verticalScrollBar()
         sb.setValue(sb.maximum())
 
