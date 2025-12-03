@@ -18,8 +18,8 @@ The platform allows users to compose a "Party" of specialized AI agents (e.g., T
 
 1.  **Clone the repository**
     ```bash
-    git clone <repository-url>
-    cd multi-agent-debate
+    git clone https://github.com/playa77/MADS
+    cd MADS
     ```
 
 2.  **Install dependencies**
@@ -37,10 +37,9 @@ The platform allows users to compose a "Party" of specialized AI agents (e.g., T
 
 1.  **Launch the Application**
     ```bash
-    python main.py
+    python3 app.py
     ```
-    *(Note: Ensure you have renamed the final verification script to main.py, or run the current entry point script.)*
-
+    
 2.  **The Lobby (Setup Phase)**
     *   **Topic**: Enter the resolution or question for the debate.
     *   **Library**: Drag agent roles from the left panel to the "Active Party" on the right.
