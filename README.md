@@ -1,10 +1,10 @@
-# Multi-Agent Debate Platform v3.0
+# Multi-Agent Debate System v3.0
 
-A sophisticated, native desktop application for orchestrating role-playing debates between AI agents. This platform transitions from a linear CLI script to an event-driven PyQt6 application featuring a Director-Driven Simulation engine.
+A sophisticated, native desktop application for orchestrating role-playing debates between AI agents. This system transitions from a linear CLI script to an event-driven PyQt6 application featuring a Director-Driven Simulation engine.
 
 ## Overview
 
-The platform allows users to compose a "Party" of specialized AI agents (e.g., The Stoic, The Futurist), define a debate topic, and watch them interact in real-time. The user acts as the "Director," capable of pausing the simulation and injecting instructions with varying degrees of influence—from subtle suggestions to critical system overrides.
+The system allows users to compose a "Party" of specialized AI agents (e.g., The Stoic, The Futurist), define a debate topic, and watch them interact in real-time. The user acts as the "Director," capable of pausing the simulation and injecting instructions with varying degrees of influence—from subtle suggestions to critical system overrides.
 
 ## Technical Stack
 
