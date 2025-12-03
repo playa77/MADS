@@ -1,274 +1,84 @@
-# v0.1 THIS IS THE FIRST WORKING VERSION!
+# Multi-Agent Debate Platform v3.0
 
-# Multi-Agent Debate System
+A sophisticated, native desktop application for orchestrating role-playing debates between AI agents. This platform transitions from a linear CLI script to an event-driven PyQt6 application featuring a Director-Driven Simulation engine.
 
-A simple Python framework for orchestrating AI-powered debates between multiple specialized agents. This system enables complex discussions on nuanced topics by having different AI personalities engage in structured conversations, each bringing unique perspectives and reasoning styles.
+## Overview
 
-## Features
+The platform allows users to compose a "Party" of specialized AI agents (e.g., The Stoic, The Futurist), define a debate topic, and watch them interact in real-time. The user acts as the "Director," capable of pausing the simulation and injecting instructions with varying degrees of influence—from subtle suggestions to critical system overrides.
 
-- **Multiple AI Personas**: Deploy up to 9 different agent types (Optimist, Pessimist, Pragmatist, Futurist, Historian, Contrarian, Strategist, Machiavelli, Stoic)
-- **OpenRouter Integration**: Leverage various LLMs through OpenRouter's unified API
-- **Interactive Mode**: Real-time human participation and moderation
-- **Configurable Parameters**: Customizable debate rounds, temperature settings, and conversation flow
-- **Smart Conversation Management**: History pruning, similarity detection, and graceful interruption handling
-- **Rich Terminal Output**: Beautiful console formatting with progress indicators
-- **JSON Logging**: Complete debate transcripts for analysis and review
-- **Docker Support**: Containerized deployment for consistent environments
+## Technical Stack
 
-## Quick Start
+*   **Language**: Python 3.10+
+*   **GUI Framework**: PyQt6 (Native Widgets)
+*   **State Management**: Pydantic
+*   **API Integration**: OpenRouter (via OpenAI Python Client)
+*   **Concurrency**: QThread / QRunnable
 
-### Prerequisites
+## Installation
 
-- Python 3.8+
-- OpenRouter API key ([get one here](https://openrouter.ai/))
-- Docker (optional, for containerized deployment)
+1.  **Clone the repository**
+    ```bash
+    git clone <repository-url>
+    cd multi-agent-debate
+    ```
 
-### Installation
+2.  **Install dependencies**
+    ```bash
+    pip install PyQt6 pydantic python-dotenv openai
+    ```
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/yourusername/multiagent-debate.git
-   cd multiagent-debate
-   ```
+3.  **Configure Environment**
+    Create a `.env` file in the root directory containing your OpenRouter API key:
+    ```ini
+    OPENROUTER_API_KEY=sk-or-v1-your-key-here
+    ```
 
-2. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+## Usage
 
-3. **Set up environment variables:**
-   ```bash
-   # Create .env file
-   echo "OPENROUTER_API_KEY=your_api_key_here" > .env
-   ```
+1.  **Launch the Application**
+    ```bash
+    python main.py
+    ```
+    *(Note: Ensure you have renamed the final verification script to main.py, or run the current entry point script.)*
 
-4. **Run your first debate:**
-   ```bash
-   python main.py --config config.json
-   ```
+2.  **The Lobby (Setup Phase)**
+    *   **Topic**: Enter the resolution or question for the debate.
+    *   **Library**: Drag agent roles from the left panel to the "Active Party" on the right.
+    *   **Configuration**: Double-click any agent in the Active Party to customize their Display Name, Model (e.g., google/gemini-2.5-flash-lite), and Temperature.
 
-### Docker Deployment
+3.  **The Arena (Runtime Phase)**
+    *   **Start**: Click "Start Debate" to initialize the session.
+    *   **Observation**: Agents will take turns debating. A visual progress bar indicates when an agent is querying the API.
+    *   **Controls**: Use the "Pause/Resume" button to halt execution.
 
-```bash
-# Build and run with Docker Compose
-docker compose up --build
+4.  **Director Mode (Intervention)**
+    *   **Slider**: Adjust the "Influence Weight" (0.0 to 1.0).
+        *   **0.0 - 0.3 (Subtle)**: Contextual note or suggestion.
+        *   **0.4 - 0.7 (Mandatory)**: Required argument point.
+        *   **0.8 - 1.0 (Override)**: Critical system directive; overrides previous logic.
+    *   **Inject**: Type your instruction and click "INJECT". The engine will pause, insert the message, and force the next agent to react immediately.
 
-# For interactive sessions
-docker compose run --service-ports debate
+## Architecture
+
+The application follows a strict Model-View-Controller (MVC) pattern:
+
+*   **Models (`models.py`)**: Defines `DebateState`, `AgentConfig`, and `Message` using Pydantic for strict typing and JSON serialization.
+*   **View (`lobby.py`, `main_window.py`, `director.py`)**: PyQt6 widgets handling user interaction and rendering.
+*   **Controller (`controller.py`)**: Manages application flow, bridges the Engine and UI, and handles API worker threads.
+*   **Engine (`engine.py`)**: Headless state machine managing the turn queue and history.
+*   **Workers (`workers.py`)**: Handles asynchronous communication with OpenRouter to prevent UI freezing.
+*   **Role Manager (`role_manager.py`)**: Loads text-based agent templates from the `roles/` directory.
+
+## Customization
+
+To add new agent personalities, create a `.txt` file in the `roles/` directory. The filename becomes the ID, and the content serves as the System Prompt.
+
+Example: `roles/skeptic.txt`
+```text
+Name: Skeptic
+You are a radical skeptic. You question the premise of every argument presented to you.
 ```
-
-## Configuration
-
-The system is highly configurable through `config.json`. Here's what each section controls:
-
-### Model Configuration
-```json
-{
-  "model": {
-    "name": "deepseek/deepseek-chat-v3.1:free",
-    "temperature": 0.6,
-    "max_tokens": 512
-  }
-}
-```
-
-### Conversation Settings
-```json
-{
-  "conversation": {
-    "history_window_utts": 12,      // How many previous messages agents see
-    "rounds": 50,                   // Maximum debate rounds
-    "stop_on_repeat": 2,            // Stop if agent repeats similar responses
-    "stop_on_user_input": true,     // Allow interactive interruption
-    "seed_topic": "Your debate topic here",
-    "query_delay_seconds": 5,       // Delay between API calls
-    "repeat_similarity_threshold": 0.88  // Similarity threshold for repetition detection
-  }
-}
-```
-
-### Agent Personalities
-
-Each agent has unique characteristics controlled by temperature and system prompts:
-
-- **Optimist** (temp: 0.7) - Focuses on positive outcomes and opportunities
-- **Pessimist** (temp: 0.4) - Highlights risks and potential downsides
-- **Pragmatist** (temp: 0.3) - Emphasizes practical, implementable solutions
-- **Futurist** (temp: 0.8) - Explores long-term implications and emerging trends
-- **Historian** (temp: 0.5) - Provides historical context and precedents
-- **Contrarian** (temp: 0.9) - Challenges assumptions and popular opinions
-- **Strategist** (temp: 0.4) - Develops systematic approaches and frameworks
-- **Machiavelli** (temp: 0.6) - Considers power dynamics and realpolitik
-- **Stoic** (temp: 0.5) - Focuses on acceptance, resilience, and practical wisdom
-
-## Usage Examples
-
-### Basic Debate
-```bash
-python main.py --config config.json --rounds 10
-```
-
-### Non-Interactive Mode
-```bash
-python main.py --no-interactive --delay 3
-```
-
-### Custom Configuration
-```bash
-python main.py --config custom_config.json --rounds 25 --delay 2
-```
-
-### Interactive Controls
-
-During debates, you can:
-- Press **Enter** to continue to the next agent
-- Type **`u:your message`** to inject your own contribution
-- Type **`q`** to quit gracefully
-
-## File Structure
-
-```
-multiagent-debate/
-├── main.py                 # Main orchestrator
-├── agents.py              # Agent definitions and model creation
-├── utils.py               # Utility functions
-├── config.json            # Main configuration file
-├── requirements.txt       # Python dependencies
-├── docker-compose.yml     # Docker deployment configuration
-├── Dockerfile             # Container build instructions
-├── roles/                 # Directory for agent system prompts
-│   ├── optimist.txt
-│   ├── pessimist.txt
-│   └── ...
-├── data/                  # Debate logs and outputs
-│   └── debates.json
-└── .env                   # Environment variables (create this)
-```
-
-## System Prompts
-
-Agent personalities are defined in text files under the `roles/` directory. Each file contains detailed instructions that shape how that agent thinks and responds. You can customize these prompts to create entirely new personas or refine existing ones.
-
-Example structure for `roles/optimist.txt`:
-```
-You are the Optimist in this debate. Your role is to:
-- Highlight positive possibilities and opportunities
-- Propose constructive solutions
-- Maintain hope while being realistic
-- Challenge overly pessimistic viewpoints
-[... detailed personality instructions ...]
-```
-
-## Debate Logging
-
-All debates are automatically logged to `data/debates.json` in newline-delimited JSON format:
-
-```json
-{"ts": "2025-01-15T10:30:00Z", "round": 1, "agent_id": "optimist", "agent_name": "Optimist", "content": "I believe AI advancement...", "model": "deepseek/deepseek-chat-v3.1:free"}
-{"ts": "2025-01-15T10:30:15Z", "round": 1, "agent_id": "pessimist", "agent_name": "Pessimist", "content": "However, we must consider...", "model": "deepseek/deepseek-chat-v3.1:free"}
-```
-
-This format makes it easy to analyze debates programmatically or import into analysis tools.
-
-## Advanced Features
-
-### Similarity Detection
-The system can automatically detect when agents start repeating themselves, preventing circular discussions:
-```json
-{
-  "stop_on_repeat": 2,
-  "repeat_similarity_threshold": 0.88
-}
-```
-
-### Graceful Shutdown
-Press `Ctrl+C` at any time to gracefully stop the debate while preserving all logs.
-
-### Custom Models
-Easily switch between different AI models by updating the model configuration:
-```json
-{
-  "model": {
-    "name": "anthropic/claude-3-haiku",
-    "temperature": 0.7,
-    "max_tokens": 1000
-  }
-}
-```
-
-### Per-Agent Temperature
-Fine-tune each agent's creativity individually:
-```json
-{
-  "agents": [
-    {"id": "creative", "name": "Creative Thinker", "temperature": 0.9},
-    {"id": "analytical", "name": "Analyst", "temperature": 0.3}
-  ]
-}
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **API Key Not Found**
-   - Ensure your `.env` file contains `OPENROUTER_API_KEY=your_key_here`
-   - Check that the environment variable name matches your config
-
-2. **Model Not Available**
-   - Verify the model name in your config exists on OpenRouter
-   - Some models may require credits or specific access
-
-3. **Import Errors**
-   - Install dependencies: `pip install -r requirements.txt`
-   - For conda users: `conda install langchain langchain-openai`
-
-4. **Rate Limiting**
-   - Increase `query_delay_seconds` in your config
-   - Consider using paid models for higher rate limits
-
-### Debug Mode
-
-Enable verbose logging by modifying the logging configuration in your config file or by examining the generated `debates.json` file for detailed interaction logs.
-
-## Contributing
-
-We welcome contributions! Areas where help is particularly appreciated:
-
-- New agent personalities and system prompts
-- Additional model integrations
-- Analysis tools for debate transcripts
-- Performance optimizations
-- Documentation improvements
-
-### Development Setup
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Built with [LangChain](https://langchain.com/) for LLM integration
-- Powered by [OpenRouter](https://openrouter.ai/) for model access
-- Uses [Rich](https://rich.readthedocs.io/) for beautiful terminal output
-
-## Example Debate Topics
-
-Try these thought-provoking topics to see the system in action:
-
-- "Should AI development be globally regulated, and if so, how?"
-- "Will remote work fundamentally change urban development patterns?"
-- "Is universal basic income inevitable with advancing automation?"
-- "How should society balance privacy with security in the digital age?"
-- "What role should genetic engineering play in human enhancement?"
-
----
-
-**Ready to start your first debate?** Run `python main.py` and watch AI personalities engage in sophisticated discussions!
+MIT License
